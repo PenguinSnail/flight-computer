@@ -17,8 +17,8 @@ float ground_altitude;
 File data_file;
 File stats_file;
 
-bool status_led_state = true;
-bool card_led_state = true;
+bool status_led_state;
+bool card_led_state;
 
 bool recording = false;
 unsigned long start_time = millis();
@@ -29,6 +29,11 @@ unsigned long last_times[3] = { 0, 0, 0 };
 
 float max_values[3] = { 0.0, 0.0, 0.0 };
 unsigned long max_times[3] = { 0, 0, 0 };
+
+void updateLeds() {
+  digitalWrite(STATUS_LED, status_led_state ? HIGH : LOW);
+  digitalWrite(CARD_LED, card_led_state ? HIGH : LOW);
+}
 
 float readAltitudeFeet() {
   return bmp.readAltitude() * 3.281 - ground_altitude;
@@ -79,28 +84,37 @@ void buttonHandler() {
   if (interrupt_time - last_interrupt_time > 200) {
     if (!recording) {
       File root = SD.open("/");
-      int file_count = 0;
+      int flight_count = 0;
 
       while (true) {
         File entry = root.openNextFile();
-
         if (!entry) break;
         if (!entry.isDirectory()) {
-          file_count++;
+          String name = String(entry.name());
+          if (name.endsWith(".CSV")) {
+            flight_count++;
+          }
         }
 
         entry.close();
       }
 
-      data_file = SD.open(String("flight") + file_count + "_data.csv", FILE_WRITE);
-      stats_file = SD.open(String("flight") + file_count + "_stats.txt", FILE_WRITE);
+      char data_file_name[9];
+      char stats_file_name[9];
 
-      if (!data_file || !stats_file) {
+      sprintf(data_file_name, "%04d.CSV", flight_count);
+      sprintf(stats_file_name, "%04d.TXT", flight_count);
+
+      Serial.printf("begin recording flight %d\n", flight_count);
+      data_file = SD.open(data_file_name, FILE_WRITE);
+      stats_file = SD.open(stats_file_name, FILE_WRITE);
+
+      if (!data_file) {
         Serial.println("Failed to open file");
 
         while (true) {
           card_led_state = !card_led_state;
-          digitalWrite(CARD_LED, card_led_state ? HIGH : LOW);
+          updateLeds();
           delay(1000/2/2);
         };
       };
@@ -116,11 +130,12 @@ void buttonHandler() {
 
       data_file.println("time milliseconds, altitude feet");
     } else {
+      Serial.println("end recording");
       data_file.close();
 
-      stats_file.printf("Max altitude: %.2f ft at T+%.3f seconds", max_values[0], max_times[0] / 100.0);
-      stats_file.printf("Max vertical velocity: %.2f ft/s (%.2f mph) at T+ %.3f seconds", max_values[1] * 1000, max_values[1] * 0.681818, max_times[1] / 100.0);
-      stats_file.printf("Max vertical acceleration: %.2f ft/s^2 (%.2f Gs) at T+ %.3f seconds", max_values[2] * 1000 * 1000, max_values[2] * 0.03108095, max_times[2] / 100.0);
+      stats_file.printf("Max altitude: %.2f ft at T+%.3f seconds\n", max_values[0], max_times[0] / 100.0);
+      stats_file.printf("Max vertical velocity: %.2f ft/s (%.2f mph) at T+ %.3f seconds\n", max_values[1] * 1000, max_values[1] * 0.681818, max_times[1] / 100.0);
+      stats_file.printf("Max vertical acceleration: %.2f ft/s^2 (%.2f Gs) at T+ %.3f seconds\n", max_values[2] * 1000 * 1000, max_values[2] * 0.03108095, max_times[2] / 100.0);
       stats_file.close();
 
       status_led_state = false;
@@ -137,24 +152,27 @@ void setup() {
   // start serial for debugging
   Serial.begin(9600);
   // setup pin modes
+  pinMode(SD_CS_PIN, OUTPUT);
   pinMode(STATUS_LED, OUTPUT);
   pinMode(CARD_LED, OUTPUT);
   pinMode(BUTTON_PIN, INPUT_PULLUP);
 
-  // turn on the status LEDs
-  digitalWrite(STATUS_LED, HIGH);
-  digitalWrite(CARD_LED, HIGH);
+  // turn on the status LED
+  status_led_state = true;
+  card_led_state = false;
+  updateLeds();
 
+  // delay startup to allow serial connections
   delay(STARTUP_DELAY);
 
   // initialize the pressure sensor
   if (!bmp.begin(0x76)) {
     Serial.println("Failed to initialize BMP");
 
-    // blink the led
+    // lock execution and blink the led
     while (true) {
       status_led_state = !status_led_state;
-      digitalWrite(STATUS_LED, status_led_state ? HIGH : LOW);
+      updateLeds();
       delay(1000/3/2);
     };
   };
@@ -168,26 +186,27 @@ void setup() {
   }
   ground_altitude = altitude_reset / 10;
 
+  // turn off the status led once sensor setup is complete
   status_led_state = false;
-  digitalWrite(STATUS_LED, status_led_state ? HIGH : LOW);
+  updateLeds();
 
   Serial.println("Altitude zeroed");
 
   // initialize the SD card
-  if (SD.begin(SD_CS_PIN)) {
+  if (!SD.begin(SD_CS_PIN)) {
     Serial.println("Failed to initialize SD card");
 
     // blink the led
     while (true) {
       card_led_state = !card_led_state;
-      digitalWrite(CARD_LED, card_led_state ? HIGH : LOW);
+      updateLeds();
       delay(1000/2/3);
     };
   };
   Serial.println("SD card initialized");
-  
+
   card_led_state = false;
-  digitalWrite(CARD_LED, card_led_state ? HIGH : LOW);
+  updateLeds();
 
   attachInterrupt(0, buttonHandler, LOW);
 }
@@ -208,10 +227,9 @@ void loop() {
       addToLastAltitudes(altitude, time);
       updateMaxStats();
 
-      data_file.printf("%d, %.2f", time, altitude);
+      data_file.printf("%d, %.2f\n", time, altitude);
     }
   }
 
-  digitalWrite(STATUS_LED, status_led_state ? HIGH : LOW);
-  digitalWrite(CARD_LED, card_led_state ? HIGH : LOW);
+  updateLeds();
 }
