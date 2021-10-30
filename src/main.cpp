@@ -83,6 +83,14 @@ void buttonHandler() {
   // If interrupts come faster than 200ms, assume it's a bounce and ignore
   if (interrupt_time - last_interrupt_time > 200) {
     if (!recording) {
+      // initialize the SD card
+      if (!SD.begin(SD_CS_PIN)) {
+        Serial.println("Failed to initialize SD card");
+        card_led_state = true;
+        return;
+      };
+      Serial.println("SD card initialized");
+
       File root = SD.open("/");
       int flight_count = 0;
 
@@ -111,12 +119,8 @@ void buttonHandler() {
 
       if (!data_file) {
         Serial.println("Failed to open file");
-
-        while (true) {
-          card_led_state = !card_led_state;
-          updateLeds();
-          delay(1000/2/2);
-        };
+        card_led_state = true;
+        return;
       };
 
       start_time = millis();
@@ -129,8 +133,9 @@ void buttonHandler() {
       max_times[2] = 0;
 
       data_file.println("time milliseconds, altitude feet");
+
+      recording = true;
     } else {
-      Serial.println("end recording");
       data_file.close();
 
       stats_file.printf("Max altitude: %.2f ft at T+%.3f seconds\n", max_values[0], max_times[0] / 100.0);
@@ -139,10 +144,14 @@ void buttonHandler() {
       stats_file.close();
 
       status_led_state = false;
-      card_led_state= false;
-    }
+      card_led_state = false;
 
-    recording = !recording;
+      SD.end();
+
+      Serial.println("end recording");
+
+      recording = false;
+    }
   }
 
   last_interrupt_time = interrupt_time;
@@ -192,27 +201,14 @@ void setup() {
 
   Serial.println("Altitude zeroed");
 
-  // initialize the SD card
-  if (!SD.begin(SD_CS_PIN)) {
-    Serial.println("Failed to initialize SD card");
-
-    // blink the led
-    while (true) {
-      card_led_state = !card_led_state;
-      updateLeds();
-      delay(1000/2/3);
-    };
-  };
-  Serial.println("SD card initialized");
-
   card_led_state = false;
   updateLeds();
-
-  attachInterrupt(0, buttonHandler, LOW);
 }
 
 void loop() {
-  if (recording) {
+  if (digitalRead(0) == LOW) {
+    buttonHandler();
+  } else if (recording) {
     if ((millis() / 500) % 2 == 0) {
       status_led_state = true;
       card_led_state = false;
