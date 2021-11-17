@@ -14,12 +14,14 @@
 enum states {
   STANDBY = 0,
   RECORDING,
-  CARD_ERROR
+  CARD_ERROR,
+  FILE_ERROR
 };
 
 Adafruit_BMP280 bmp;
 float ground_altitude;
 
+File flight_directory;
 File data_file;
 File stats_file;
 
@@ -112,23 +114,23 @@ void buttonHandler() {
       while (true) {
         File entry = root.openNextFile();
         if (!entry) break;
-        if (!entry.isDirectory()) {
-          String name = String(entry.name());
-          if (name.endsWith(".CSV")) {
-            flight_count++;
-          }
+        if (entry.isDirectory()) {
+          flight_count++;
         }
 
         entry.close();
       }
 
       // filenames
-      char data_file_name[13];
-      char stats_file_name[13];
+      char flight_directory_name[4];
+      char data_file_name[17];
+      char stats_file_name[17];
 
-      // dynamic file names based on flight number
-      sprintf(data_file_name, "%03d-data.CSV", flight_count);
-      sprintf(stats_file_name, "%03d-stat.TXT", flight_count);
+      sprintf(flight_directory_name, "%03d", flight_count);
+      SD.mkdir(flight_directory_name);
+
+      sprintf(data_file_name, "%s/%03d-data.CSV", flight_directory_name, flight_count);
+      sprintf(stats_file_name, "%s/%03d-stat.TXT", flight_directory_name, flight_count);
 
       // open files for writing
       Serial.printf("begin recording flight %d\n", flight_count);
@@ -138,7 +140,7 @@ void buttonHandler() {
       // fail if files couldn't be opened
       if (!data_file || !stats_file) {
         Serial.println("Failed to open file");
-        state = states::CARD_ERROR;
+        state = states::FILE_ERROR;
         return;
       };
 
@@ -154,17 +156,18 @@ void buttonHandler() {
       max_times[2] = 0;
 
       // csv column titles
-      data_file.println("time milliseconds, altitude feet");
+      data_file.println("time,altitude");
 
       state = states::RECORDING;
     } else {
-      data_file.close();
-
+      ledOn();
       // print out statistics
       stats_file.printf("Max altitude: %.2f ft at T+%.3f seconds\n", max_values[0], max_times[0] / 1000.0);
       stats_file.printf("Max vertical velocity: %.2f ft/s (%.2f mph) at T+ %.3f seconds\n", max_values[1] * 1000, max_values[1] * 1000 * 0.681818, max_times[1] / 1000.0);
       stats_file.printf("Max vertical acceleration: %.2f ft/s^2 (%.2f Gs) at T+ %.3f seconds\n", max_values[2] * 1000 * 1000, max_values[2] * 1000 * 1000 * 0.03108095, max_times[2] / 1000.0);
       stats_file.close();
+
+      data_file.close();
 
       SD.end();
       ledOff();
@@ -244,11 +247,20 @@ void loop() {
       updateMaxStats();
 
       // log the data to the file
-      data_file.printf("%.3f, %.2f\n", time / 1000.0, altitude);
+      data_file.printf("%.3f,%.2f\n", time / 1000.0, altitude);
     }
   } else if (state == states::CARD_ERROR) {
     // led blinking
-    if ((millis() / 150) % 2 == 0) {
+    int ms_of_s = millis() % 1000;
+    if ((ms_of_s > 0 && ms_of_s < 150) || (ms_of_s > 300 && ms_of_s < 450)) {
+      ledOn();
+    } else {
+      ledOff();
+    }
+  } else if (state == states::FILE_ERROR) {
+    // led blinking
+    int ms_of_s = millis() % 1000;
+    if ((ms_of_s > 0 && ms_of_s < 125) || (ms_of_s > 250 && ms_of_s < 375) || (ms_of_s > 500 && ms_of_s < 625)) {
       ledOn();
     } else {
       ledOff();
