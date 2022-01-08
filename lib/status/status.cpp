@@ -27,25 +27,30 @@ void ledToggle() {
 void updateLed() {
   int ms_of_s = millis() % 1000;
   
-  if (state == states::STANDBY) {
-    ledOff();
-  } else if (state == states::RECORDING) {
-    if ((millis() / 500) % 2 == 0) {
-      ledOn();
-    } else {
+  switch(state) {
+    case STANDBY:
       ledOff();
-    }
-  } else if (state == states::CARD_ERROR) {
-    if ((ms_of_s > 0 && ms_of_s < 150) || (ms_of_s > 300 && ms_of_s < 450)) {
-      ledOn();
-    } else {
-      ledOff();
-    }
-  } else if (state == states::FILE_ERROR) {
-    if ((ms_of_s > 0 && ms_of_s < 125) || (ms_of_s > 250 && ms_of_s < 375) || (ms_of_s > 500 && ms_of_s < 625)) {
-      ledOn();
-    } else {
-      ledOff();
-    }
+      break;
+    case RECORDING:
+      if ((millis() / 500) % 2 == 0) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
+    case CARD_ERROR:
+      if ((ms_of_s > 0 && ms_of_s < 150) || (ms_of_s > 300 && ms_of_s < 450)) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
+    case FILE_ERROR:
+      if ((ms_of_s > 0 && ms_of_s < 125) || (ms_of_s > 250 && ms_of_s < 375) || (ms_of_s > 500 && ms_of_s < 625)) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
   }
 }
