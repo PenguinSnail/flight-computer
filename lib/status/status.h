@@ -1,3 +1,12 @@
+#ifndef status_h
+#define status_h
+
+#include <Arduino.h>
+
+//#define DEBUG
+
+#define STATUS_LED 1
+
 enum states {
   STANDBY = 0,
   RECORDING,
@@ -14,3 +23,5 @@ void ledOff();
 void ledToggle();
 
 void updateLed();
+
+#endif

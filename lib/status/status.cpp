@@ -1,7 +1,4 @@
-#include <Arduino.h>
 #include "status.h"
-
-#define STATUS_LED 1
 
 states state = states::STANDBY;
 bool status_led_state = false;
