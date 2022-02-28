@@ -5,12 +5,13 @@
 #include <SD.h>
 #include <status.h>
 
-//#define DEBUG
+#include <config.h>
+#include <point.h>
 
 #define SD_CS_PIN 3
 
-states startFile();
-void writeData(unsigned long time, float alt);
+bool startFile();
+void writeDataPoint(DataPoint point);
 void endFile();
 
 #endif

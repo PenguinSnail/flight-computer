@@ -3,15 +3,16 @@
 
 #include <Arduino.h>
 
-//#define DEBUG
-
-#define STATUS_LED 1
+#include <config.h>
 
 enum states {
-  STANDBY = 0,
-  RECORDING,
-  CARD_ERROR,
-  FILE_ERROR
+  CARD_ERROR = 0,
+  FILE_ERROR,
+  STANDBY,
+  ARMED,
+  ASCENT,
+  DESCENT,
+  GROUND,
 };
 
 extern states state;

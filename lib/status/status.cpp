@@ -25,16 +25,6 @@ void updateLed() {
   int ms_of_s = millis() % 1000;
   
   switch(state) {
-    case STANDBY:
-      ledOff();
-      break;
-    case RECORDING:
-      if ((millis() / 500) % 2 == 0) {
-        ledOn();
-      } else {
-        ledOff();
-      }
-      break;
     case CARD_ERROR:
       if ((ms_of_s > 0 && ms_of_s < 150) || (ms_of_s > 300 && ms_of_s < 450)) {
         ledOn();
@@ -44,6 +34,31 @@ void updateLed() {
       break;
     case FILE_ERROR:
       if ((ms_of_s > 0 && ms_of_s < 125) || (ms_of_s > 250 && ms_of_s < 375) || (ms_of_s > 500 && ms_of_s < 625)) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
+    case STANDBY:
+      ledOff();
+      break;
+    case ARMED:
+      if ((millis() / 500) % 2 == 0) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
+    case ASCENT:
+      if ((millis() / 250) % 2 == 0) {
+        ledOn();
+      } else {
+        ledOff();
+      }
+      break;
+    case DESCENT:
+    case GROUND:
+      if ((millis() / 1000) % 2 == 0) {
         ledOn();
       } else {
         ledOff();

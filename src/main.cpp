@@ -1,19 +1,17 @@
 #include <Arduino.h>
+#include <CircularBuffer.h>
 
 #include <file.h>
 #include <status.h>
 #include <sensors.h>
 
-//#define DEBUG
-
-#define BUTTON_PIN 0
-#define POWER_LED 2
-
-#define SAMPLERATE 50
-#define STARTUP_DELAY 0
+#include "config.h"
+#include "point.h"
 
 unsigned long start_time = millis();
 unsigned long last_button_time = 0;
+
+CircularBuffer<DataPoint, SAMPLERATE * 5> buffer;
 
 void setup() {
   setupStatus();
@@ -42,11 +40,17 @@ void loop() {
     // If interrupts come faster than 200ms, assume it's a bounce and ignore
     if (interrupt_time - last_button_time > 200) {
       // if we're not already recording
-      if (state != states::RECORDING) {
+      if (state <= states::STANDBY) {
         // attempt to start the file
-        state = startFile();
-        // set recording start time
-        start_time = millis();
+        if (startFile()) {
+          #if (defined LIFTOFF_ALTITUDE && defined SENSOR_BARO) || (defined LIFTOFF_ACCELERATION && defined SENSOR_ACCEL)
+            state = states::ARMED;
+          #else
+            state = states::ASCENT;
+          #endif
+          // set recording start time
+          start_time = millis();
+        }
       } else {
         // else if we are recording,
         // trigger the led and end the file
@@ -63,16 +67,58 @@ void loop() {
     }
 
     last_button_time = interrupt_time;
-  } else if (state == states::RECORDING) {
+  } else if (state == states::ARMED) {
+    #ifdef DEBUG
+      Serial.println("Armed!");
+    #endif
     // if a sample should be taken
     if ((millis() - start_time) % (1000/SAMPLERATE) == 0) {
-      // read time since recording started
-      unsigned long time = millis() - start_time;
-      // read the altitude
-      float altitude = readAltitude();
+      DataPoint point = readDataPoint();
+      point.time = millis() - start_time;
 
       // log the data to the file
-      writeData(time, altitude);
+      buffer.push(point);
+    }
+
+    int launch_conditions_required = 0;
+    int launch_conditions_met = 0;
+
+    #if defined LIFTOFF_ALTITUDE && defined SENSOR_BARO
+      launch_conditions_required++;
+      if (readAltitude() >= LIFTOFF_ALTITUDE) launch_conditions_met++;
+    #endif
+    #if defined LIFTOFF_ACCELERATION && defined SENSOR_ACCEL
+      launch_conditions_required++;
+      if (true) launch_conditions_met++;
+    #endif
+
+    if (launch_conditions_met == launch_conditions_required) {
+      #ifdef DEBUG
+        Serial.println("launch detected!");
+      #endif
+      state = states::ASCENT;
+      unsigned long offset = millis() - start_time;
+
+      #ifdef DEBUG
+        Serial.println("dumping buffer to file...");
+      #endif
+      while (!buffer.isEmpty()) {
+        DataPoint point = buffer.pop();
+        point.time = point.time - offset;
+        writeDataPoint(point);
+      }
+
+      start_time = millis();
+    }
+  } else if (state == states::ASCENT) {
+    // if a sample should be taken
+    if ((millis() - start_time) % (1000/SAMPLERATE) == 0) {
+      DataPoint point = readDataPoint();
+      // read time since recording started
+      point.time = millis() - start_time;
+
+      // log the data to the file
+      writeDataPoint(point);
     }
   }
 

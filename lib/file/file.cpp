@@ -2,14 +2,15 @@
 
 File data_file;
 
-states startFile() {
+bool startFile() {
   // initialize the SD card
   pinMode(SD_CS_PIN, OUTPUT);
   if (!SD.begin(SD_CS_PIN)) {
     #ifdef DEBUG
       Serial.println("Failed to initialize SD card");
     #endif
-    return states::CARD_ERROR;
+    state = states::CARD_ERROR;
+    return false;
   };
   #ifdef DEBUG
     Serial.println("SD card initialized");
@@ -30,7 +31,7 @@ states startFile() {
   }
 
   // filenames
-  char data_file_name[17];
+  char data_file_name[20];
 
   sprintf(data_file_name, "%03d-data.CSV", flight_count);
 
@@ -45,17 +46,20 @@ states startFile() {
     #ifdef DEBUG
       Serial.println("Failed to open file");
     #endif
-    return states::FILE_ERROR;
+    state = states::FILE_ERROR;
+    return false;
   };
 
   // csv column titles
   data_file.println("time,altitude");
-
-  return states::RECORDING;
+  return true;
 }
 
 void writeData(unsigned long time, float altitude) {
   data_file.printf("%.3f,%.2f\n", time / 1000.0, altitude);
+}
+void writeDataPoint(DataPoint point) {
+  writeData(point.time, point.altitude);
 }
 
 void endFile() {
