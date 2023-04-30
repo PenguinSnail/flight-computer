@@ -12,7 +12,7 @@
 unsigned long start_time = millis();
 unsigned long last_button_time = 0;
 
-CircularBuffer<DataPoint, SAMPLERATE * 5> buffer;
+CircularBuffer<DataPoint, ASCENT_SAMPLERATE * 2> buffer;
 
 void setup()
 {
@@ -77,7 +77,7 @@ void loop()
 
         debugLog("Armed!");
         // if a sample should be taken
-        if ((millis() - start_time) % (1000 / SAMPLERATE) == 0)
+        if ((millis() - start_time) % (1000 / ASCENT_SAMPLERATE) == 0)
         {
             DataPoint point = readDataPoint();
             point.time = millis() - start_time;
@@ -122,7 +122,7 @@ void loop()
     else if (state == states::ASCENT)
     {
         // if a sample should be taken
-        if ((millis() - start_time) % (1000 / SAMPLERATE) == 0)
+        if ((millis() - start_time) % (1000 / ASCENT_SAMPLERATE) == 0)
         {
             DataPoint point = readDataPoint();
             // read time since recording started

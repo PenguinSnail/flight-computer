@@ -9,10 +9,12 @@
 
 #define STARTUP_DELAY 0
 
-//#define LIFTOFF_ALTITUDE 100 // ft
+#define LIFTOFF_ALTITUDE 100 // ft
 #define LIFTOFF_ACCELERATION 25 // m/s^2
-#define GROUND_HIT_DURATION 5000 // ms
-#define SAMPLERATE 50
+#define GROUND_HIT_DURATION 2500 // ms
+
+#define ASCENT_SAMPLERATE 30
+#define DESCENT_SAMPLERATE 5
 
 #define DEBUG
 
