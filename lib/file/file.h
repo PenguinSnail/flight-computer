@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <SD.h>
 #include <status.h>
+#include <log.h>
 
 #include <config.h>
 #include <point.h>

@@ -3,18 +3,16 @@
 
 #include <Arduino.h>
 #include <status.h>
+#include <log.h>
 
 #include <config.h>
 #include <point.h>
 
-#ifdef SENSOR_BARO
-  #include <Adafruit_BMP280.h>
-#endif
+#include <Adafruit_BMP280.h>
+#include <Adafruit_MPU6050.h>
 
 void setupSensors();
-#ifdef SENSOR_BARO
-  float readAltitude();
-#endif
+float readAltitude();
 
 DataPoint readDataPoint();
 

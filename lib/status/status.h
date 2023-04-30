@@ -5,14 +5,15 @@
 
 #include <config.h>
 
-enum states {
-  CARD_ERROR = 0,
-  FILE_ERROR,
-  STANDBY,
-  ARMED,
-  ASCENT,
-  DESCENT,
-  GROUND,
+enum states
+{
+    CARD_ERROR = 0,
+    FILE_ERROR,
+    STANDBY,
+    ARMED,
+    ASCENT,
+    DESCENT,
+    GROUND,
 };
 
 extern states state;

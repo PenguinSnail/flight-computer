@@ -9,19 +9,22 @@
 
 #define STARTUP_DELAY 0
 
-#define LIFTOFF_ALTITUDE 100 // ft
+//#define LIFTOFF_ALTITUDE 100 // ft
 #define LIFTOFF_ACCELERATION 25 // m/s^2
-#define APOGEE_DETECT_DURATION 1000 // ms
 #define GROUND_HIT_DURATION 5000 // ms
+#define SAMPLERATE 50
 
-//#define DEBUG
+#define DEBUG
 
 // ------------------------------------
 
-#define SAMPLERATE 50
-#define SENSOR_BARO
-#define SENSOR_ACCEL
-#define SENSOR_GYRO
+#define ACCEL_X_OFFSET 0.0
+#define ACCEL_Y_OFFSET 0.0
+#define ACCEL_Z_OFFSET 0.0
+
+#define GYRO_X_OFFSET 0.0
+#define GYRO_Y_OFFSET 0.0
+#define GYRO_Z_OFFSET 0.0
 
 // ------------------------------------
 
